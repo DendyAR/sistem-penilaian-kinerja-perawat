@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Sistem Pendukung Keputusan Penentuan Kinerja Perawat Terbaik
 
-## Getting Started
+Sistem ini menggunakan metode **Simple Additive Weighting (SAW)** untuk menentukan perawat terbaik berdasarkan kriteria yang telah ditentukan.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## 1. Struktur Data
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Perawat**: Alternatif yang akan dinilai.
+- **Kriteria**: Faktor penilaian, misal `Absensi`, `Kompetensi Teknis`, `Kemampuan Komunikasi`, dll.
+- **Nilai**: Nilai tiap perawat untuk setiap kriteria.
+- **HasilPerhitungan**: Hasil akhir perawat setelah dihitung SAW, termasuk skor total dan ranking.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 2. Langkah-langkah Perhitungan SAW
 
-## Learn More
+### a. Matriks Nilai Alternatif
+Contoh nilai perawat untuk setiap kriteria:
 
-To learn more about Next.js, take a look at the following resources:
+| Perawat | C1 (Absensi) | C2 (Kompetensi) | C3 (Komunikasi) | C4 (Kepribadian) | C5 (Kegagalan) |
+|---------|--------------|----------------|----------------|-----------------|----------------|
+| A1      | 90           | 8              | 2              | 92              | 1              |
+| A2      | 80           | 7              | 2              | 85              | 1              |
+| A3      | 79           | 5              | 2              | 85              | 1              |
+| A4      | 75           | 6              | 2              | 80              | 2              |
+| A5      | 80           | 6              | 2              | 80              | 1              |
+| A6      | 90           | 5              | 2              | 80              | 2              |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+---
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### b. Normalisasi Nilai
+Rumus normalisasi:
 
-## Deploy on Vercel
+- **Benefit (semakin besar lebih baik)**  
+\[
+r_{ij} = \frac{x_{ij}}{\max(x_j)}
+\]
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Cost (semakin kecil lebih baik)**  
+\[
+r_{ij} = \frac{\min(x_j)}{x_{ij}}
+\]
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Contoh hasil normalisasi:
+
+| Perawat | C1 | C2    | C3 | C4    | C5  |
+|---------|----|-------|----|-------|-----|
+| A1      | 1  | 1     | 1  | 1     | 0.5 |
+| A2      | 0.888 | 0.875 | 1  | 0.92391 | 0.5 |
+| A3      | 0.8778 | 0.625 | 1  | 0.92391 | 0.5 |
+| A4      | 0.8333 | 0.75 | 1  | 0.86956 | 1 |
+| A5      | 0.888 | 0.76 | 1  | 0.86956 | 0.5 |
+| A6      | 1  | 0.625 | 1  | 0.86956 | 0.5 |
+
+---
+
+### c. Perhitungan Skor Total
+\[
+V_i = \sum_{j=1}^{n} w_j \cdot r_{ij}
+\]
+
+Contoh dengan bobot kriteria:
+
+| Kriteria | Bobot |
+|----------|-------|
+| C1       | 20    |
+| C2       | 30    |
+| C3       | 15    |
+| C4       | 15    |
+| C5       | 20    |
+
+Perhitungan A1:
+
+\[
+V_1 = (20*1) + (30*1) + (15*1) + (15*1) + (20*0.5) = 90
+\]
+
+---
+
+### d. Ranking Perawat
+Setelah skor total dihitung, ranking ditentukan berdasarkan skor tertinggi:
+
+| Rank | Perawat            | Skor Total |
+|------|------------------|------------|
+| 1    | Salsabila S.Kep    | 90         |
+| 2    | Maura Laureza S.Kep| 82.886     |
+| 3    | Lauras S.Kep       | 87.21      |
+| 4    | Laureza S.Kep      | 78.621     |
+| 5    | Arya S.Kep         | 75.164     |
+| 6    | Karina S.Kep       | 75.417     |
+
+> Perawat dengan skor tertinggi menjadi **perawat terbaik**.
+
+---
+
+## 3. Alur Perhitungan SAW (Diagram)
+
+```text
++-----------------+
+| Input Nilai     |
+| Perawat x Kriteria|
++--------+--------+
+         |
+         v
++-----------------+
+| Normalisasi     |
+| (Benefit / Cost)|
++--------+--------+
+         |
+         v
++-----------------+
+| Hitung Skor     |
+| Total Perawat   |
++--------+--------+
+         |
+         v
++-----------------+
+| Urutkan Ranking |
++-----------------+

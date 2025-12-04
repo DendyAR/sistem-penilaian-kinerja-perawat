@@ -1,0 +1,94 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------
+// Admin → Untuk login & otorisasi
+// ------------------------------------------------------
+model Admin {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  role      Role     @default(admin)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  admin
+  staff
+}
+
+// ------------------------------------------------------
+// Perawat → Data perawat
+// ------------------------------------------------------
+model Perawat {
+  id                Int                @id @default(autoincrement())
+  nama              String
+  departemen        String?
+  nilai             Nilai[]
+  createdAt         DateTime           @default(now())
+  hasilPerhitungans HasilPerhitungan[]
+}
+
+// ------------------------------------------------------
+// Kriteria → Digunakan pada perhitungan SAW
+// ------------------------------------------------------
+model Kriteria {
+  id    Int           @id @default(autoincrement())
+  nama  String
+  bobot Float
+  jenis JenisKriteria
+  nilai Nilai[]
+}
+
+enum JenisKriteria {
+  benefit
+  cost
+}
+
+// ------------------------------------------------------
+// Nilai → Nilai per perawat per kriteria
+// ------------------------------------------------------
+model Nilai {
+  id         Int   @id @default(autoincrement())
+  nilai      Float // nilai asli untuk perhitungan SAW
+  perawatId  Int
+  kriteriaId Int
+
+  perawat  Perawat  @relation(fields: [perawatId], references: [id], onDelete: Cascade)
+  kriteria Kriteria @relation(fields: [kriteriaId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------
+// HasilPerhitungan → Nilai akhir SAW + ranking
+// ------------------------------------------------------
+model HasilPerhitungan {
+  id        Int   @id @default(autoincrement())
+  perawatId Int
+  totalSkor Float
+  ranking   Int
+
+  perawat Perawat @relation(fields: [perawatId], references: [id], onDelete: Cascade)
+}
+
+// ------------------------------------------------------
+// ProsesPerhitungan → Log history proses SAW
+// ------------------------------------------------------
+model ProsesPerhitungan {
+  id        Int      @id @default(autoincrement())
+  timestamp DateTime @default(now())
+  hasilJson Json // menyimpan normalisasi, bobot, dll
+  catatan   String?
+}
