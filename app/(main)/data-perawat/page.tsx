@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 import {
     Card,
@@ -11,6 +12,8 @@ import {
     CardContent,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+
 import {
     Table,
     TableBody,
@@ -20,20 +23,26 @@ import {
     TableRow,
 } from "@/components/ui/table";
 
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
+import { LoadingSpinner } from "@/components/ui/spinner";
+import TambahPerawat from "@/components/form-tambah-perawat";
 
-// ----------- TYPE SESUAI API PERAWAT / PRISMA -------------
+// ----------- TYPE -----------------
 type Perawat = {
     id: number;
     nama: string;
     departemen: string | null;
     createdAt: string;
 };
-// -----------------------------------------------------------
+// -----------------------------------
 
 export default function Page() {
+    const router = useRouter();
     const [perawat, setPerawat] = useState<Perawat[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
+
+    // --- STATE UNTUK SEARCH ---
+    const [search, setSearch] = useState<string>("");
 
     // FETCH DATA
     useEffect(() => {
@@ -51,9 +60,18 @@ export default function Page() {
         fetchPerawat();
     }, []);
 
+    // --- FILTERING DATA BERDASARKAN SEARCH ---
+    const filteredPerawat = perawat.filter((p) => {
+        const keyword = search.toLowerCase();
+        return (
+            p.nama.toLowerCase().includes(keyword) ||
+            (p.departemen?.toLowerCase() || "").includes(keyword)
+        );
+    });
+
     return (
         <div className="p-6 space-y-6">
-            {/* HEADER */}
+
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <div>
@@ -63,23 +81,42 @@ export default function Page() {
                         </CardDescription>
                     </div>
 
-                    <Link href="/data-perawat/tambah">
-                        <Button className="gap-2">
-                            <Plus size={16} />
-                            Tambah Perawat
+                    <div className="flex justify-between gap-2">
+                        <Button variant="secondary" onClick={() => router.back()}>
+                            Kembali
                         </Button>
-                    </Link>
+                    </div>
+
                 </CardHeader>
+            </Card>
+
+            <TambahPerawat />
+            {/* HEADER */}
+
+            {/* SEARCH BOX */}
+            <Card>
+                <CardContent className="p-4">
+                    <Input
+                        placeholder="Cari perawat berdasarkan nama atau departemen..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="max-w-md"
+                    />
+                </CardContent>
             </Card>
 
             {/* TABLE */}
             <Card>
                 <CardContent className="p-5">
                     {loading ? (
-                        <p className="p-4">Memuat data...</p>
-                    ) : perawat.length === 0 ? (
+                        <div className="flex justify-center items-center h-full">
+                            <LoadingSpinner />
+                        </div>
+                    ) : filteredPerawat.length === 0 ? (
                         <p className="p-4 text-muted-foreground">
-                            Belum ada data perawat.
+                            {search
+                                ? "Tidak ada perawat yang cocok dengan pencarian."
+                                : "Belum ada data perawat."}
                         </p>
                     ) : (
                         <Table>
@@ -88,19 +125,23 @@ export default function Page() {
                                     <TableHead className="w-[50px]">ID</TableHead>
                                     <TableHead>Nama</TableHead>
                                     <TableHead>Departemen</TableHead>
-                                    <TableHead className="text-right">Aksi</TableHead>
+                                    <TableHead className="text-right">
+                                        Aksi
+                                    </TableHead>
                                 </TableRow>
                             </TableHeader>
 
                             <TableBody>
-                                {perawat.map((p) => (
+                                {filteredPerawat.map((p) => (
                                     <TableRow key={p.id}>
                                         <TableCell>{p.id}</TableCell>
                                         <TableCell>{p.nama}</TableCell>
                                         <TableCell>{p.departemen || "-"}</TableCell>
 
                                         <TableCell className="text-right space-x-2">
-                                            <Link href={`/data-perawat/${p.id}/edit`}>
+                                            <Link
+                                                href={`/data-perawat/${p.id}/edit`}
+                                            >
                                                 <Button
                                                     size="sm"
                                                     variant="outline"
@@ -126,7 +167,9 @@ export default function Page() {
                                                     );
 
                                                     setPerawat((prev) =>
-                                                        prev.filter((x) => x.id !== p.id)
+                                                        prev.filter(
+                                                            (x) => x.id !== p.id
+                                                        )
                                                     );
                                                 }}
                                             >

@@ -20,7 +20,7 @@ import {
 
 import { Input } from "@/components/ui/input";
 
-export default function TambahPerawatPage() {
+export default function TambahPerawat() {
     const router = useRouter();
 
     const [nama, setNama] = useState<string>("");
@@ -63,7 +63,7 @@ export default function TambahPerawatPage() {
     }
 
     return (
-        <div className="p-6 space-y-6">
+        <div className="space-y-6">
             <Card>
                 <CardHeader>
                     <CardTitle>Tambah Perawat</CardTitle>
